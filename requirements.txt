@@ -15,6 +15,7 @@ fastapi-cli==0.0.16
 fastapi-cloud-cli==0.5.2
 fastar==0.8.0
 git-filter-repo==2.47.0
+greenlet==3.3.2
 h11==0.16.0
 httpcore==1.0.9
 httptools==0.7.1
@@ -30,6 +31,7 @@ packaging==25.0
 pillow==12.1.1
 pluggy==1.6.0
 plyer==2.1.0
+psycopg2==2.9.11
 pydantic==2.12.5
 pydantic_core==2.41.5
 Pygments==2.19.2
