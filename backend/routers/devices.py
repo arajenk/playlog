@@ -13,8 +13,7 @@ router = APIRouter()
 
 
 @router.post("/devices/register")
-async def registerDevice(request: RegisterDeviceRequest, db: AsyncSession = Depends(get_db), 
-                         current_user: int = Depends(get_current_user)):
+async def registerDevice(request: RegisterDeviceRequest, db: AsyncSession = Depends(get_db), current_user: int = Depends(get_current_user)):
     device = Device(user_id=current_user, name=request.name, os=request.os)
     try:
         db.add(device)
