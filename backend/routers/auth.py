@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.connection import get_db
 from sqlalchemy import select
 from db.models import User
 from passlib.context import CryptContext
-from jose import jwt
+from jose import jwt, JWTError
 import os
 from dotenv import load_dotenv
 
@@ -30,6 +30,7 @@ def create_token(user_id: int) -> str:
     payload = {"sub": str(user_id)}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
+    
 @router.post("/register")
 async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
     email_result = await db.execute(select(User).where(User.email == request.email))
@@ -62,5 +63,13 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
     if pwd_context.verify(request.password, user.password_hash) == False:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     return create_token(user.id)
-    
+
+async def get_current_user(authorization: str = Header(...)):
+    token = authorization.removeprefix("Bearer ")
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return int(payload["sub"])
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
     
