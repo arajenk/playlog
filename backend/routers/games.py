@@ -6,7 +6,6 @@ from db.models import Game
 from .auth import get_current_user
 from sqlalchemy import select
 
-
 class CreateGameRequest(BaseModel):
     canonical_name: str
 

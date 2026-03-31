@@ -6,11 +6,9 @@ from routers import auth, devices, sessions, games
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # startup code here
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
-    # shutdown code here (optional)
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(auth.router)

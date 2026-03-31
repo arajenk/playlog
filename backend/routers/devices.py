@@ -5,12 +5,10 @@ from db.connection import get_db
 from .auth import get_current_user
 from db.models import Device
 
-
 class RegisterDeviceRequest(BaseModel):
     name: str
     os: str
 router = APIRouter()
-
 
 @router.post("/devices/register")
 async def registerDevice(request: RegisterDeviceRequest, db: AsyncSession = Depends(get_db), current_user: int = Depends(get_current_user)):

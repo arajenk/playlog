@@ -7,13 +7,9 @@ from db.models import Session
 from sqlalchemy import select
 from datetime import datetime, timezone
 
-
-
-
 class StartSessionRequest(BaseModel):
     game_id: int
     device_id: int
-
 
 router = APIRouter()
 

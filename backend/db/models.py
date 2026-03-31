@@ -4,10 +4,8 @@ from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import func
 
-
 class Base(DeclarativeBase):
     pass
-
 
 class User(Base):
     __tablename__ = "users"
@@ -17,7 +15,6 @@ class User(Base):
     email: Mapped[str] = mapped_column(unique=True)
     password_hash: Mapped[str] = mapped_column()
 
-
 class Device(Base):
     __tablename__ = "devices"
 
@@ -25,7 +22,6 @@ class Device(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     name: Mapped[str] = mapped_column()
     os: Mapped[str] = mapped_column()
-
 
 class Game(Base):
     __tablename__ = "games"
@@ -36,7 +32,6 @@ class Game(Base):
     process_names: Mapped[list[str] | None] = mapped_column(ARRAY(String))
     cover_url: Mapped[str | None] = mapped_column()
     is_verified: Mapped[bool] = mapped_column(default=False)
-
 
 class Session(Base):
     __tablename__ = "sessions"

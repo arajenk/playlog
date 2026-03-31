@@ -12,7 +12,6 @@ from dotenv import load_dotenv
 load_dotenv()
 SECRET_KEY =  os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
-
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class RegisterRequest(BaseModel):
@@ -30,7 +29,6 @@ def create_token(user_id: int) -> str:
     payload = {"sub": str(user_id)}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-    
 @router.post("/register")
 async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
     email_result = await db.execute(select(User).where(User.email == request.email))
