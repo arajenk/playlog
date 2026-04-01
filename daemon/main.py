@@ -1,0 +1,48 @@
+from platformdirs import user_config_path
+import httpx
+import os
+import json
+from getpass import getpass
+from dotenv import load_dotenv
+from platform import system, node
+
+def main():
+    load_dotenv()
+    config_dir = user_config_path("playlog", ensure_exists=True)
+    config_file = config_dir / "config.json"
+    print(config_file)
+    BACKEND_URL = os.getenv("BACKEND_URL")
+    try:
+        with open(config_file, 'r', encoding='utf-8') as f:
+            config = json.load(f)   
+    except FileNotFoundError:
+        config = {}
+
+    if "token" not in config:
+        email = input("Enter your email: ")
+        password = getpass(prompt="Enter your password: ")
+        login = httpx.post(f'{BACKEND_URL}/login', json={"email": email, "password" : password})
+        login_json = login.json()
+        with open(config_file, 'w', encoding='utf-8') as f:
+            config["token"] = login_json
+            json.dump(config, f)
+    if "device_id" not in config:
+        device_name = node()
+        os_map = {"Darwin": "macOS"}
+        device_os = os_map.get(system(), system())
+        device_register = httpx.post(f'{BACKEND_URL}/devices/register', json={"name": device_name, "os" : device_os}, headers={"Authorization": f"Bearer {config['token']}"})
+        device_json = device_register.json()
+        with open (config_file, 'w', encoding='utf-8') as f:
+            config["device_id"] = device_json
+            json.dump(config, f)
+
+
+    
+
+
+
+
+if __name__ == "__main__":
+    main()
+
+    
