@@ -5,6 +5,8 @@ import json
 from getpass import getpass
 from dotenv import load_dotenv
 from platform import system, node
+from poller import get_running_processes
+import time
 
 def main():
     load_dotenv()
@@ -35,12 +37,13 @@ def main():
         with open (config_file, 'w', encoding='utf-8') as f:
             config["device_id"] = device_json
             json.dump(config, f)
-
-
-    
-
-
-
+    get_all_games = httpx.get(f'{BACKEND_URL}/games/getallgames', headers={"Authorization": f"Bearer {config['token']}"})
+    games_json = get_all_games.json()
+    while True:
+        for proc in get_running_processes():
+            if proc["name"] in games_json:
+                print(proc["name"])
+        time.sleep(30)
 
 if __name__ == "__main__":
     main()

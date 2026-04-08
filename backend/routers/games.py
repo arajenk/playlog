@@ -60,3 +60,15 @@ async def getUnverifiedGames(db: AsyncSession = Depends(get_db), current_user: i
     games = games_query.scalars().all()
     return [game.id for game in games]
 
+@router.get("/games/getallgames")
+async def getAllGames(db: AsyncSession = Depends(get_db), current_user: int = Depends(get_current_user)):
+    games_query = await db.execute(select(Game))
+    games = games_query.scalars().all()
+    games_to_id = {}
+    for game in games:
+        if game.process_names is not None:
+            for process_name in game.process_names:
+                games_to_id[process_name] = game.id
+    return games_to_id
+
+
