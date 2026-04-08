@@ -39,11 +39,27 @@ def main():
             json.dump(config, f)
     get_all_games = httpx.get(f'{BACKEND_URL}/games/getallgames', headers={"Authorization": f"Bearer {config['token']}"})
     games_json = get_all_games.json()
+
+    active_sessions = {}
     while True:
+        running_games = set()
         for proc in get_running_processes():
-            if proc["name"] in games_json:
-                print(proc["name"])
+            if proc["name"] in games_json and proc["name"] not in active_sessions:
+                start_session = httpx.post(f'{BACKEND_URL}/sessions/start', json={"game_id": games_json[proc["name"]], "device_id": config['device_id']}, headers={"Authorization":f"Bearer {config['token']}"})
+                running_games.add(proc['name'])
+                active_sessions[proc['name']] = start_session.json()
+            if proc["name"] in games_json and proc["name"] in active_sessions:
+                heartbeat = httpx.post(f'{BACKEND_URL}/sessions/{active_sessions[proc['name']]}/heartbeat', headers={"Authorization": f"Bearer {config['token']}"})
+                running_games.add(proc['name'])
         time.sleep(30)
+        to_remove = []
+        for session in active_sessions:
+            if session not in running_games:
+                end_session = httpx.post(f'{BACKEND_URL}/sessions/{active_sessions[session]}/end', headers={"Authorization": f"Bearer {config['token']}"})
+                to_remove.append(session)
+        for session in to_remove:
+            del active_sessions[session]
+            
 
 if __name__ == "__main__":
     main()
