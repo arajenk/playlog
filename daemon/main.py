@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from platform import system, node
 from poller import get_running_processes
 import time
+import session as session_manager
 
 def main():
     load_dotenv()
@@ -45,17 +46,17 @@ def main():
         running_games = set()
         for proc in get_running_processes():
             if proc["name"] in games_json and proc["name"] not in active_sessions:
-                start_session = httpx.post(f'{BACKEND_URL}/sessions/start', json={"game_id": games_json[proc["name"]], "device_id": config['device_id']}, headers={"Authorization":f"Bearer {config['token']}"})
+                session_id = session_manager.startSession(BACKEND_URL, games_json[proc['name']], config['device_id'], config['token'])
                 running_games.add(proc['name'])
-                active_sessions[proc['name']] = start_session.json()
+                active_sessions[proc['name']] = session_id
             if proc["name"] in games_json and proc["name"] in active_sessions:
-                heartbeat = httpx.post(f'{BACKEND_URL}/sessions/{active_sessions[proc['name']]}/heartbeat', headers={"Authorization": f"Bearer {config['token']}"})
+                session_manager.heartbeat(BACKEND_URL, active_sessions[proc['name']], config['token'])
                 running_games.add(proc['name'])
         time.sleep(30)
         to_remove = []
         for session in active_sessions:
             if session not in running_games:
-                end_session = httpx.post(f'{BACKEND_URL}/sessions/{active_sessions[session]}/end', headers={"Authorization": f"Bearer {config['token']}"})
+                session_manager.endSession(BACKEND_URL, active_sessions[session], config['token'])
                 to_remove.append(session)
         for session in to_remove:
             del active_sessions[session]
