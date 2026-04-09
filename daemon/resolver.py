@@ -1,10 +1,20 @@
 import httpx
 import anthropic
+import time
+
+_igdb_token: str | None = None
+_igdb_token_expires_at: float = 0.0
 
 def accessIGDB(client_id, client_secret):
-    grant_type="client_credentials"
-    token_request = httpx.post('https://id.twitch.tv/oauth2/token', params={"client_id": client_id, "client_secret": client_secret, "grant_type":grant_type})
-    return token_request.json()["access_token"]
+    global _igdb_token, _igdb_token_expires_at
+    if _igdb_token and time.time() < _igdb_token_expires_at - 60:
+        return _igdb_token
+    token_request = httpx.post('https://id.twitch.tv/oauth2/token', params={"client_id": client_id, "client_secret": client_secret, "grant_type": "client_credentials"})
+    token_request.raise_for_status()
+    data = token_request.json()
+    _igdb_token = data["access_token"]
+    _igdb_token_expires_at = time.time() + data["expires_in"]
+    return _igdb_token
 
 def searchIGDB(game_name, client_id, access_token):
     response = httpx.post(
@@ -34,13 +44,17 @@ def resolveProcess(process_name, exe_path, client_id, client_secret, anthropic_a
         anthropic_result = aiLookup(anthropic_api_key, igdb_result, process_name, exe_path)
     else:
         return None
-    if anthropic_result.strip() != "null":
-        for game in igdb_result:
-            if game["id"] == int(anthropic_result.strip()):
-                return {"igdb_id": game["id"], "name": game["name"]}
+    cleaned = anthropic_result.strip()
+    if cleaned == "null":
         return None
-    else:
+    if not cleaned.lstrip("-").isdigit():
+        print(f"Unexpected AI response: {cleaned!r}")
         return None
+    target_id = int(cleaned)
+    for game in igdb_result:
+        if game["id"] == target_id:
+            return {"igdb_id": game["id"], "name": game["name"]}
+    return None
 if __name__ == "__main__":
     import os
     from dotenv import load_dotenv

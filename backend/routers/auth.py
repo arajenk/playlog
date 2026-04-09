@@ -6,11 +6,14 @@ from sqlalchemy import select
 from db.models import User
 from passlib.context import CryptContext
 from jose import jwt, JWTError
+from datetime import datetime, timezone, timedelta
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-SECRET_KEY =  os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable is not set")
 ALGORITHM = "HS256"
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -25,8 +28,11 @@ class LoginRequest(BaseModel):
 
 router = APIRouter()
 
+TOKEN_EXPIRY_DAYS = 90
+
 def create_token(user_id: int) -> str:
-    payload = {"sub": str(user_id)}
+    exp = datetime.now(timezone.utc) + timedelta(days=TOKEN_EXPIRY_DAYS)
+    payload = {"sub": str(user_id), "exp": exp}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 @router.post("/register")
