@@ -14,7 +14,6 @@ def main():
     load_dotenv()
     config_dir = user_config_path("playlog", ensure_exists=True)
     config_file = config_dir / "config.json"
-    print(config_file)
     BACKEND_URL = os.getenv("BACKEND_URL")
     IGDB_CLIENT_ID = os.getenv("IGDB_CLIENT_ID")
     IGDB_CLIENT_SECRET = os.getenv("IGDB_CLIENT_SECRET")
@@ -51,7 +50,6 @@ def main():
     active_sessions = {}
     attempted_resolutions = set(config.get("attempted_resolutions", []))
     while True:
-        print('starting poll cycle')
         running_games = set()
         for proc in get_running_processes():
             if proc["name"] in games_json and proc["name"] not in active_sessions:
@@ -69,16 +67,13 @@ def main():
                     create_game.raise_for_status()
                     game_id = create_game.json()
                     games_json[proc['name']] = game_id
-                    print(f"Created game with id: {game_id}")
                     update_game = httpx.post(f'{BACKEND_URL}/games/{game_id}/update', json={"igdb_id": game_found['igdb_id'], "process_names": [proc['name']]}, headers={"Authorization": f"Bearer {config['token']}"})
                     update_game.raise_for_status()
-                    print(f"Update response: {update_game.status_code} {update_game.json()}")
         # after the for loop, before time.sleep
         config["attempted_resolutions"] = list(attempted_resolutions)
         with open(config_file, 'w', encoding='utf-8') as f:
             json.dump(config, f)
-        time.sleep(5)
-        print("sleep done, checking sessions")
+        time.sleep(30)
         to_remove = []
         for session in active_sessions:
             if session not in running_games:
