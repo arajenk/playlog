@@ -23,7 +23,7 @@ def aiLookup(anthropic_api_key, igdb_results, process, exe_path):
     message = client.messages.create(
     model="claude-haiku-4-5",
     max_tokens=100,
-        messages=[{"role": "user", "content": f'Given the process name {process}, and the path {exe_path}, which of these IGDB games is the most likely match? Return only the game id as a number or null if none match. Games: {igdb_results}'}]
+        messages=[{"role": "user", "content": f'Given the process name {process}, and the path {exe_path}, which of these IGDB games is the most likely match? Return ONLY a number or ONLY the word null. No other text, no explanation. Games: {igdb_results}'}]
 )
     return message.content[0].text
 

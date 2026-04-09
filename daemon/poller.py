@@ -1,10 +1,14 @@
 import psutil
+from AppKit import NSWorkspace
+
 def get_running_processes():
+    print('polling...')
     processes = []
-    for proc in psutil.process_iter(['name']):
-        try:
-            exe = proc.exe()
-        except (psutil.AccessDenied, psutil.NoSuchProcess):
-            continue
-        processes.append({"name" : proc.info['name'], "exe":exe})
+    apps = NSWorkspace.sharedWorkspace().runningApplications()
+    for app in apps:
+        name = app.localizedName()
+        exe = app.executableURL().path() if app.executableURL() else None
+        if name and exe:
+            processes.append({"name": name, "exe": exe})
+    print(f"found {len(processes)} processes")
     return processes

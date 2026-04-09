@@ -29,6 +29,7 @@ def main():
         email = input("Enter your email: ")
         password = getpass(prompt="Enter your password: ")
         login = httpx.post(f'{BACKEND_URL}/login', json={"email": email, "password" : password})
+        login.raise_for_status()
         login_json = login.json()
         with open(config_file, 'w', encoding='utf-8') as f:
             config["token"] = login_json
@@ -38,16 +39,19 @@ def main():
         os_map = {"Darwin": "macOS"}
         device_os = os_map.get(system(), system())
         device_register = httpx.post(f'{BACKEND_URL}/devices/register', json={"name": device_name, "os" : device_os}, headers={"Authorization": f"Bearer {config['token']}"})
+        device_register.raise_for_status()
         device_json = device_register.json()
         with open (config_file, 'w', encoding='utf-8') as f:
             config["device_id"] = device_json
             json.dump(config, f)
     get_all_games = httpx.get(f'{BACKEND_URL}/games/getallgames', headers={"Authorization": f"Bearer {config['token']}"})
+    get_all_games.raise_for_status()
     games_json = get_all_games.json()
 
     active_sessions = {}
-    attempted_resolutions = set()
+    attempted_resolutions = set(config.get("attempted_resolutions", []))
     while True:
+        print('starting poll cycle')
         running_games = set()
         for proc in get_running_processes():
             if proc["name"] in games_json and proc["name"] not in active_sessions:
@@ -61,13 +65,20 @@ def main():
                 attempted_resolutions.add(proc["name"])
                 game_found = resolveProcess(proc["name"], proc["exe"], IGDB_CLIENT_ID, IGDB_CLIENT_SECRET, ANTHROPIC_API_KEY)
                 if game_found is not None:
-                    #create game in database 
                     create_game = httpx.post(f'{BACKEND_URL}/games/create', json={"canonical_name": game_found['name']}, headers={"Authorization": f"Bearer {config['token']}"})
+                    create_game.raise_for_status()
                     game_id = create_game.json()
-                    #add to games_json
                     games_json[proc['name']] = game_id
-                    update_game = httpx.post(f'{BACKEND_URL}/games/{game_id}/update', json={"igdb_id":game_found['igdb_id']}, headers={"Authorization": f"Bearer {config['token']}"})
-        time.sleep(30)
+                    print(f"Created game with id: {game_id}")
+                    update_game = httpx.post(f'{BACKEND_URL}/games/{game_id}/update', json={"igdb_id": game_found['igdb_id'], "process_names": [proc['name']]}, headers={"Authorization": f"Bearer {config['token']}"})
+                    update_game.raise_for_status()
+                    print(f"Update response: {update_game.status_code} {update_game.json()}")
+        # after the for loop, before time.sleep
+        config["attempted_resolutions"] = list(attempted_resolutions)
+        with open(config_file, 'w', encoding='utf-8') as f:
+            json.dump(config, f)
+        time.sleep(5)
+        print("sleep done, checking sessions")
         to_remove = []
         for session in active_sessions:
             if session not in running_games:
@@ -75,8 +86,6 @@ def main():
                 to_remove.append(session)
         for session in to_remove:
             del active_sessions[session]
-        
-            
 
 if __name__ == "__main__":
     main()
