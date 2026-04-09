@@ -8,6 +8,7 @@ from platform import system, node
 from poller import get_running_processes
 import time
 import session as session_manager
+from resolver import resolveProcess
 
 def main():
     load_dotenv()
@@ -15,6 +16,9 @@ def main():
     config_file = config_dir / "config.json"
     print(config_file)
     BACKEND_URL = os.getenv("BACKEND_URL")
+    IGDB_CLIENT_ID = os.getenv("IGDB_CLIENT_ID")
+    IGDB_CLIENT_SECRET = os.getenv("IGDB_CLIENT_SECRET")
+    ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
     try:
         with open(config_file, 'r', encoding='utf-8') as f:
             config = json.load(f)   
@@ -42,6 +46,7 @@ def main():
     games_json = get_all_games.json()
 
     active_sessions = {}
+    attempted_resolutions = set()
     while True:
         running_games = set()
         for proc in get_running_processes():
@@ -52,6 +57,16 @@ def main():
             if proc["name"] in games_json and proc["name"] in active_sessions:
                 session_manager.heartbeat(BACKEND_URL, active_sessions[proc['name']], config['token'])
                 running_games.add(proc['name'])
+            if proc["name"] not in games_json and proc["name"] not in attempted_resolutions:
+                attempted_resolutions.add(proc["name"])
+                game_found = resolveProcess(proc["name"], proc["exe"], IGDB_CLIENT_ID, IGDB_CLIENT_SECRET, ANTHROPIC_API_KEY)
+                if game_found is not None:
+                    #create game in database 
+                    create_game = httpx.post(f'{BACKEND_URL}/games/create', json={"canonical_name": game_found['name']}, headers={"Authorization": f"Bearer {config['token']}"})
+                    game_id = create_game.json()
+                    #add to games_json
+                    games_json[proc['name']] = game_id
+                    update_game = httpx.post(f'{BACKEND_URL}/games/{game_id}/update', json={"igdb_id":game_found['igdb_id']}, headers={"Authorization": f"Bearer {config['token']}"})
         time.sleep(30)
         to_remove = []
         for session in active_sessions:
@@ -60,6 +75,7 @@ def main():
                 to_remove.append(session)
         for session in to_remove:
             del active_sessions[session]
+        
             
 
 if __name__ == "__main__":

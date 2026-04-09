@@ -35,7 +35,10 @@ def resolveProcess(process_name, exe_path, client_id, client_secret, anthropic_a
     else:
         return None
     if anthropic_result.strip() != "null":
-        return anthropic_result.strip()
+        for game in igdb_result:
+            if game["id"] == int(anthropic_result.strip()):
+                return {"igdb_id": game["id"], "name": game["name"]}
+        return None
     else:
         return None
 if __name__ == "__main__":
