@@ -40,7 +40,7 @@ async def updateGame(request: UpdateGameRequest, game_id: int, db: AsyncSession 
     game_result = await db.execute(select(Game).where(Game.id == game_id))
     game_obj = game_result.scalar_one_or_none()
     if game_obj is None:
-         raise HTTPException(status_code=404, detail="Game not found")
+         raise HTTPException(status_qcode=404, detail="Game not found")
     if request.process_names is not None:
         game_obj.process_names = request.process_names
     if request.cover_url is not None:
