@@ -1,8 +1,11 @@
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from db.models import Base
 from db.connection import engine
 from routers import auth, devices, sessions, games
+
+logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Header
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +10,8 @@ from jose import jwt, JWTError
 from datetime import datetime, timezone, timedelta
 import os
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -55,6 +58,7 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
         await db.refresh(user)
         return create_token(user.id)
     except Exception as e:
+        logger.exception("Failed to register user")
         await db.rollback()
         raise HTTPException(status_code=500, detail="Internal Server Error")
     

@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -5,6 +6,8 @@ from db.connection import get_db
 from db.models import Game
 from .auth import get_current_user
 from sqlalchemy import select
+
+logger = logging.getLogger(__name__)
 
 class CreateGameRequest(BaseModel):
     canonical_name: str
@@ -25,6 +28,7 @@ async def createGame(request: CreateGameRequest, db: AsyncSession = Depends(get_
         await db.refresh(game)
         return game.id
     except Exception as e:
+        logger.exception("Failed to create game")
         await db.rollback()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
@@ -54,6 +58,7 @@ async def updateGame(request: UpdateGameRequest, game_id: int, db: AsyncSession 
         await db.commit()
         return {"status" : "updated"}
     except Exception as e:
+        logger.exception("Failed to update game %s", game_id)
         await db.rollback()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
